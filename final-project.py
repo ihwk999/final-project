@@ -11,6 +11,7 @@ def getClassAtlas(class_url=['https://atlas.ai.umich.edu/course/SI%20206/']):
     from selenium.webdriver.support import expected_conditions as EC
     from bs4 import BeautifulSoup
     import sqlite3
+    import re
 
     # Set the path to your ChromeDriver executable
     chromedriver_path = r"C:\Users\gecko\Downloads\chromedriver_win32 (4)\chromedriver.exe"
@@ -24,7 +25,7 @@ def getClassAtlas(class_url=['https://atlas.ai.umich.edu/course/SI%20206/']):
 
         # Wait for the user to log in
         
-        element = WebDriverWait(driver, 30).until(
+        element = WebDriverWait(driver, 120).until(
             EC.presence_of_element_located((By.ID, "myNavbar"))
         )
         soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -32,58 +33,59 @@ def getClassAtlas(class_url=['https://atlas.ai.umich.edu/course/SI%20206/']):
         # Find the span element with class 'bold blue-highlight-text'
         median_grade_span = soup.find('span', class_='bold blue-highlight-text')
         median_grade = median_grade_span.text
-        print(median_grade)
 
 
         title_element = soup.find('title')
         title = title_element.text
-        print(title)
         
         element = WebDriverWait(driver, 30).until(
         EC.presence_of_element_located((By.CLASS_NAME, "course-eval-card-container"))
         )
-        
-        print('hi')
 
         elements = driver.find_elements_by_class_name("course-eval-card-container")
-        print(elements[1].text)
-    count = 0
-    for element in elements:
-        if  count == 0:
-            desire = element.text #YOU LEFT OFF RIGHT HERE, NEED TO EXTRACT %s
-            count += 1
-        elif count == 1:
-            understanding = element.text
-            count += 1
-        elif count == 2:
-            workload = element.text
-            count += 1
-        elif count == 3:
-            expectation = element.text
-            count += 1
-        elif count == 4:
-            interest = element.text
-    print(desire, understanding, workload, expectation, interest)
+
+        count = 0
+        for element in elements:
+            if  count == 0:
+                desire = element.text
+                desire = re.search(r'\b\d+\b', desire).group(0)
+                count += 1
+            elif count == 1:
+                understanding = element.text
+                understanding = re.search(r'\b\d+\b', understanding).group(0)
+                count += 1
+            elif count == 2:
+                workload = element.text
+                workload = re.search(r'\b\d+\b', workload).group(0)
+                count += 1
+            elif count == 3:
+                expectation = element.text
+                expectation = re.search(r'\b\d+\b', expectation).group(0)
+                count += 1
+            elif count == 4:
+                interest = element.text
+                interest = re.search(r'\b\d+\b', interest).group(0)
+        print(title, median_grade, desire, understanding, workload, expectation, interest,'\n\n')
 
     # Connect to the database
-    conn = sqlite3.connect('classes.db')
+    #conn = sqlite3.connect('classes.db')
 
     # Create a cursor object
-    cursor = conn.cursor()
+    #cursor = conn.cursor()
 
     # Create the table if it does not exist
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS classes
-        (id INTEGER PRIMARY KEY, median_grade TEXT, title TEXT, workload TEXT, understanding TEXT, desire TEXT, expectations TEXT)
-        ''')
-    cursor.execute('''
-        INSERT OR IGNORE INTO classes (median_grade, title, workload, understanding, desire, expectations)
-        VALUES (?, ?, ?, ?, ?, ?)
-        ''', (median_grade, title, workload, understanding, desire, expectations))
-    conn.commit()
+    #cursor.execute('''
+    #    CREATE TABLE IF NOT EXISTS classes
+    #    (id INTEGER PRIMARY KEY, median_grade TEXT, title TEXT, workload TEXT, understanding TEXT, desire TEXT, expectations TEXT)
+    #    ''')
+    #cursor.execute('''
+    #    INSERT OR IGNORE INTO classes (median_grade, title, workload, understanding, desire, expectations)
+    #    VALUES (?, ?, ?, ?, ?, ?)
+    #    ''', (median_grade, title, workload, understanding, desire, expectations))
+    #conn.commit()
 
-    cursor.close()
-    conn.close()
+    #cursor.close()
+    #conn.close()
             
             
             
@@ -98,4 +100,4 @@ def getClassAtlas(class_url=['https://atlas.ai.umich.edu/course/SI%20206/']):
 Can use https://www.lsa.umich.edu/cg/cg_results.aspx?termArray=f_23_2460&cgtype=ug&show=20&dist=NS to find classes in F_23_24 that are
 NS credits. Can change any variables to alter. For example, increase "show" to 40 to show more.
 '''
-getClassAtlas()
+getClassAtlas(['https://atlas.ai.umich.edu/course/SI%20206/', 'https://atlas.ai.umich.edu/course/IHS%20340/', 'https://atlas.ai.umich.edu/course/STATS%20250/'])
