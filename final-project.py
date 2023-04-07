@@ -47,23 +47,24 @@ def getClassAtlas(class_url=['https://atlas.ai.umich.edu/course/SI%20206/']):
 
         elements = driver.find_elements_by_class_name("course-eval-card-container")
         print(elements[1].text)
+    count = 0
     for element in elements:
-        workload = element.text
-        print(workload)
-        '''
+        if  count == 0:
+            desire = element.text #YOU LEFT OFF RIGHT HERE, NEED TO EXTRACT %s
+            count += 1
+        elif count == 1:
+            understanding = element.text
+            count += 1
+        elif count == 2:
+            workload = element.text
+            count += 1
+        elif count == 3:
+            expectation = element.text
+            count += 1
+        elif count == 4:
+            interest = element.text
+    print(desire, understanding, workload, expectation, interest)
 
-        element = driver.find_element_by_class_name("text-smed eval-stat understanding-highlight")
-        understanding = element.text
-        print(understanding)
-
-        element = driver.find_element_by_class_name("text-smed eval-stat desire-highlight")
-        desire = element.text
-        element = driver.find_element_by_class_name("text-smed eval-stat expectations-highlight")
-        expectations = element.text
-        element = driver.find_element_by_class_name("text-smed eval-stat increased-interest-highlight")
-        increased_interest = element.text
-
-        '''
     # Connect to the database
     conn = sqlite3.connect('classes.db')
 
