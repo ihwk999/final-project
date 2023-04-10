@@ -3,6 +3,43 @@
 #Step 3, find score for each teach for each top class in class DB
 
 #Step 2, Atlast:
+def atlasMajor(major= "Information BS"):
+    from selenium import webdriver
+    from selenium.webdriver.common.keys import Keys
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from bs4 import BeautifulSoup
+    import sqlite3
+    import re
+    import os
+    major = major.replace(' ','%20')
+    url = 'https://atlas.ai.umich.edu/major/'+major
+    # Set the path to your ChromeDriver executable
+    chromedriver_path = r"C:\Users\gecko\Downloads\chromedriver_win32 (4)\chromedriver.exe"
+
+    # Initialize a Chrome webdriver instance
+    driver = webdriver.Chrome(chromedriver_path)
+
+
+    driver.get(url)
+
+    element = WebDriverWait(driver, 120).until(
+            EC.presence_of_element_located((By.ID, "myNavbar"))
+        )
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
+    course_container = soup.find('div', class_ = 'common-courses-container')
+    course = course_container.text
+    links = []
+    for link in course_container.find_all('a'):
+        links.append(link.get('href'))
+    links = [x for x in links if x is not None and '/bookmark/' not in x]
+    print(links)
+    return(links)
+    
+    
+
+
 def getClassAtlas(class_url=['https://atlas.ai.umich.edu/course/SI%20206/']):
     from selenium import webdriver
     from selenium.webdriver.common.keys import Keys
@@ -66,7 +103,7 @@ def getClassAtlas(class_url=['https://atlas.ai.umich.edu/course/SI%20206/']):
             elif count == 4:
                 interest = element.text
                 interest = re.search(r'\b\d+\b', interest).group(0)
-        print(title, median_grade, desire, understanding, workload, expectation, interest,'\n\n')
+        print('\n',title, median_grade, desire, understanding, workload, expectation, interest)
 
     # Connect to the database
         path = os.path.dirname(os.path.abspath(__file__))
@@ -78,7 +115,7 @@ def getClassAtlas(class_url=['https://atlas.ai.umich.edu/course/SI%20206/']):
         # Create the table if it does not exist
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS classes
-            (id INTEGER PRIMARY KEY, title TEXT, median_grade INTEGER, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER)
+            (id INTEGER PRIMARY KEY, title TEXT, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER)
             ''')
         cursor.execute('''
             INSERT OR IGNORE INTO classes (title, median_grade, workload, understanding, desire, expectation)
@@ -97,9 +134,11 @@ def getClassAtlas(class_url=['https://atlas.ai.umich.edu/course/SI%20206/']):
     driver.quit()
 
 
+
 #we can use LSA course guide to get a list of classes that fall under certain criteria. Example:
 '''
 Can use https://www.lsa.umich.edu/cg/cg_results.aspx?termArray=f_23_2460&cgtype=ug&show=20&dist=NS to find classes in F_23_24 that are
 NS credits. Can change any variables to alter. For example, increase "show" to 40 to show more.
 '''
-getClassAtlas(['https://atlas.ai.umich.edu/course/SI%20206/', 'https://atlas.ai.umich.edu/course/IHS%20340/', 'https://atlas.ai.umich.edu/course/STATS%20250/'])
+#getClassAtlas(['https://atlas.ai.umich.edu/course/SI%20206/', 'https://atlas.ai.umich.edu/course/IHS%20340/', 'https://atlas.ai.umich.edu/course/STATS%20250/'])
+
