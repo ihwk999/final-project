@@ -12,6 +12,7 @@ def getClassAtlas(class_url=['https://atlas.ai.umich.edu/course/SI%20206/']):
     from bs4 import BeautifulSoup
     import sqlite3
     import re
+    import os
 
     # Set the path to your ChromeDriver executable
     chromedriver_path = r"C:\Users\gecko\Downloads\chromedriver_win32 (4)\chromedriver.exe"
@@ -42,7 +43,7 @@ def getClassAtlas(class_url=['https://atlas.ai.umich.edu/course/SI%20206/']):
         EC.presence_of_element_located((By.CLASS_NAME, "course-eval-card-container"))
         )
 
-        elements = driver.find_elements_by_class_name("course-eval-card-container")
+        elements = driver.find_elements(by = By.CLASS_NAME, value="course-eval-card-container")
 
         count = 0
         for element in elements:
@@ -68,24 +69,25 @@ def getClassAtlas(class_url=['https://atlas.ai.umich.edu/course/SI%20206/']):
         print(title, median_grade, desire, understanding, workload, expectation, interest,'\n\n')
 
     # Connect to the database
-    #conn = sqlite3.connect('classes.db')
+        path = os.path.dirname(os.path.abspath(__file__))
+        conn = sqlite3.connect(path+'/'+'classes.db')
 
-    # Create a cursor object
-    #cursor = conn.cursor()
+        # Create a cursor object
+        cursor = conn.cursor()
 
-    # Create the table if it does not exist
-    #cursor.execute('''
-    #    CREATE TABLE IF NOT EXISTS classes
-    #    (id INTEGER PRIMARY KEY, median_grade TEXT, title TEXT, workload TEXT, understanding TEXT, desire TEXT, expectations TEXT)
-    #    ''')
-    #cursor.execute('''
-    #    INSERT OR IGNORE INTO classes (median_grade, title, workload, understanding, desire, expectations)
-    #    VALUES (?, ?, ?, ?, ?, ?)
-    #    ''', (median_grade, title, workload, understanding, desire, expectations))
-    #conn.commit()
+        # Create the table if it does not exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS classes
+            (id INTEGER PRIMARY KEY, title TEXT, median_grade INTEGER, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER)
+            ''')
+        cursor.execute('''
+            INSERT OR IGNORE INTO classes (title, median_grade, workload, understanding, desire, expectation)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''', (title, median_grade, workload, understanding, desire, expectation))
+        conn.commit()
 
-    #cursor.close()
-    #conn.close()
+        cursor.close()
+        conn.close()
             
             
             
