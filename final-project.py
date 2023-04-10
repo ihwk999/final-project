@@ -133,6 +133,81 @@ def getClassAtlas(class_url=['https://atlas.ai.umich.edu/course/SI%20206/']):
     
     driver.quit()
 
+def salary():
+
+    import http.client
+    import sqlite3
+    import json
+
+    host = 'jooble.org'
+    key = '5d5716ba-8dec-4784-b885-926a7ebee49f'
+
+    connection = http.client.HTTPConnection(host)
+    #request headers
+    headers = {"Content-type": "application/json"}
+    #json query
+    body = '{ "keywords": "Information BS", "location": "US", "p": 4 }' #this limit isint working
+    connection.request('POST','/api/' + key, body, headers)
+    response = connection.getresponse()
+    data = response.read().decode("utf-8")
+    json_data = json.loads(data)
+    conn = sqlite3.connect('salaries.db')
+    c = conn.cursor()
+
+    # Create the table if it doesn't already exist
+    c.execute('CREATE TABLE IF NOT EXISTS jobs (title TEXT, location TEXT, snippet TEXT, salary TEXT, company TEXT)')
+
+    # Loop through the jobs and insert them into the database
+
+    print(type(json_data),'\n\n\n\n\n')
+
+    for job in json_data['jobs']:
+        title = job['title']
+        location = job['location']
+        snippet = job['snippet']
+        salary = job['salary']
+        company = job['company']
+        c.execute('INSERT OR IGNORE INTO jobs (title, location, snippet, salary, company) VALUES (?, ?, ?, ?, ?)', (title, location, snippet, salary, company))
+
+    # Commit the changes and close the connection
+    conn.commit()
+    conn.close()
+
+def GPTsalary(major = 'Information BS'):
+    import openai
+    import re
+    openai.api_key = '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'
+
+    # Set the prompt for the OpenAI API
+    prompt = ("according to Payscale.com, what is the average annual salary in usd of an individual who majaored in " + major + " in college")
+
+    # Generate a response using the OpenAI API
+    response = openai.Completion.create(
+        engine="text-davinci-002",
+        prompt=prompt,
+        max_tokens=1024,
+        n=1,
+        stop=None,
+        temperature=0.7,
+    )
+
+    # Extract the generated message from the API response
+    message = response.choices[0].text.strip()
+
+    print(message)
+
+    pattern = r"\$\d{1,4}(,\d{3})*"
+    salary_match = re.search(pattern, message)
+
+# Check if a match was found and print the result
+    if salary_match:
+        print("Salary found:", salary_match.group(0))
+        return(salary_match.group(0))
+    else:
+        print("Salary not found in the text.")
+
+    # Print the generated message
+    
 
 
 #we can use LSA course guide to get a list of classes that fall under certain criteria. Example:
@@ -142,3 +217,4 @@ NS credits. Can change any variables to alter. For example, increase "show" to 4
 '''
 #getClassAtlas(['https://atlas.ai.umich.edu/course/SI%20206/', 'https://atlas.ai.umich.edu/course/IHS%20340/', 'https://atlas.ai.umich.edu/course/STATS%20250/'])
 
+print(GPTsalary())
