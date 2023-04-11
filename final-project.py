@@ -133,46 +133,6 @@ def getClassAtlas(class_url=['https://atlas.ai.umich.edu/course/SI%20206/']):
     
     driver.quit()
 
-def salary():
-
-    import http.client
-    import sqlite3
-    import json
-
-    host = 'jooble.org'
-    key = '5d5716ba-8dec-4784-b885-926a7ebee49f'
-
-    connection = http.client.HTTPConnection(host)
-    #request headers
-    headers = {"Content-type": "application/json"}
-    #json query
-    body = '{ "keywords": "Information BS", "location": "US", "p": 4 }' #this limit isint working
-    connection.request('POST','/api/' + key, body, headers)
-    response = connection.getresponse()
-    data = response.read().decode("utf-8")
-    json_data = json.loads(data)
-    conn = sqlite3.connect('salaries.db')
-    c = conn.cursor()
-
-    # Create the table if it doesn't already exist
-    c.execute('CREATE TABLE IF NOT EXISTS jobs (title TEXT, location TEXT, snippet TEXT, salary TEXT, company TEXT)')
-
-    # Loop through the jobs and insert them into the database
-
-    print(type(json_data),'\n\n\n\n\n')
-
-    for job in json_data['jobs']:
-        title = job['title']
-        location = job['location']
-        snippet = job['snippet']
-        salary = job['salary']
-        company = job['company']
-        c.execute('INSERT OR IGNORE INTO jobs (title, location, snippet, salary, company) VALUES (?, ?, ?, ?, ?)', (title, location, snippet, salary, company))
-
-    # Commit the changes and close the connection
-    conn.commit()
-    conn.close()
-
 def GPTsalary(major = 'Information BS'):
     import openai
     import re
@@ -209,6 +169,45 @@ def GPTsalary(major = 'Information BS'):
     # Print the generated message
     
 
+def salary(major):
+    import http.client
+    import sqlite3
+    import json
+
+    host = 'jooble.org'
+    key = '5d5716ba-8dec-4784-b885-926a7ebee49f'
+
+    connection = http.client.HTTPConnection(host)
+    #request headers
+    headers = {"Content-type": "application/json"}
+    #json query
+    for x in range(4):
+        body = '{ "keywords": "'+major+'", "location": "US", "page": '+str(x)+' }' #this limit isint working
+        connection.request('POST','/api/' + key, body, headers)
+        response = connection.getresponse()
+        data = response.read().decode("utf-8")
+        json_data = json.loads(data)
+
+        #print(json_data)
+
+        conn = sqlite3.connect('salaries.db')
+        c = conn.cursor()
+        # Create the table if it doesn't already exist
+        c.execute('CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY, title TEXT, location TEXT, snippet TEXT, salary TEXT, company TEXT)')
+
+        # Loop through the jobs and insert them into the database
+        for job in json_data['jobs']:
+            title = job['title']
+            location = job['location']
+            snippet = job['snippet']
+            salary = job['salary']
+            company = job['company']
+            c.execute('INSERT OR IGNORE INTO jobs (title, location, snippet, salary, company) SELECT ?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM jobs WHERE title=?)', (title, location, snippet, salary, company, title))
+
+        # Commit the changes and close the connection
+        conn.commit()
+        conn.close()
+
 
 #we can use LSA course guide to get a list of classes that fall under certain criteria. Example:
 '''
@@ -216,5 +215,4 @@ Can use https://www.lsa.umich.edu/cg/cg_results.aspx?termArray=f_23_2460&cgtype=
 NS credits. Can change any variables to alter. For example, increase "show" to 40 to show more.
 '''
 #getClassAtlas(['https://atlas.ai.umich.edu/course/SI%20206/', 'https://atlas.ai.umich.edu/course/IHS%20340/', 'https://atlas.ai.umich.edu/course/STATS%20250/'])
-
-print(GPTsalary())
+salary('BioTech')
