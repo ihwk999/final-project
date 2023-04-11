@@ -3,7 +3,7 @@
 #Step 3, find score for each teach for each top class in class DB
 
 #Step 2, Atlast:
-def atlasMajor(major= "Information BS"):
+def atlasMajor(major= "Computer Engineering BSE"):
     from selenium import webdriver
     from selenium.webdriver.common.keys import Keys
     from selenium.webdriver.common.by import By
@@ -93,12 +93,12 @@ def atlasMajor(major= "Information BS"):
                 cursor = conn.cursor()
 
                 # Create the table if it does not exist
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS classes
+                cursor.execute(f'''
+                    CREATE TABLE IF NOT EXISTS {major}
                     (id INTEGER PRIMARY KEY, title TEXT, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER)
                     ''')
-                cursor.execute('''
-                    INSERT OR IGNORE INTO classes (title, median_grade, workload, understanding, desire, expectation)
+                cursor.execute(f'''
+                    INSERT OR IGNORE INTO {major} (title, median_grade, workload, understanding, desire, expectation)
                     VALUES (?, ?, ?, ?, ?, ?)
                     ''', (title, median_grade, workload, understanding, desire, expectation))
                 conn.commit()
