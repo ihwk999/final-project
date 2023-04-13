@@ -3,7 +3,7 @@
 #Step 3, find score for each teach for each top class in class DB
 
 #Step 2, Atlast:
-def atlasMajor(major= "Computer Engineering BSE"):
+def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major is in a seperate table and it shares integer key with classes table
     from selenium import webdriver
     from selenium.webdriver.common.keys import Keys
     from selenium.webdriver.common.by import By
@@ -40,7 +40,6 @@ def atlasMajor(major= "Computer Engineering BSE"):
     counter = 0
     if len(links)>0:
         for url in links:
-            print(counter)
             if counter >= 25:
                 break
             try:
@@ -111,7 +110,7 @@ def atlasMajor(major= "Computer Engineering BSE"):
                     ''', (title, major, median_grade, workload, understanding, desire, expectation, interest, title))
                 conn.commit()
 
-                print(cursor.rowcount)
+    
                 if cursor.rowcount >= 1:
                     counter += 1
 
@@ -186,9 +185,14 @@ def salary(jobLst):
     #request headers
     headers = {"Content-type": "application/json"}
     #json query
+    counter = 0
     for jobM in jobLst:
+        if counter >= 25:
+                    break
         for x in range(1,5): #this gets 4 pages of listings per job
-            body = '{ "keywords": "'+jobM+'", "location": "US", "page": '+str(x)+', "salar": "10" }' #this limit isint working
+            if counter >= 25:
+                    break
+            body = '{ "keywords": "'+jobM+'", "location": "US", "page": '+str(x)+', "salary": "10" }' #this limit isint working
             connection.request('POST','/api/' + key, body, headers)
             response = connection.getresponse()
             data = response.read().decode("utf-8")
@@ -203,6 +207,8 @@ def salary(jobLst):
 
             # Loop through the jobs and insert them into the database
             for job in json_data['jobs']:
+                if counter >= 25:
+                    break
                 try:
                     title = job['title']
                 except KeyError:
@@ -229,9 +235,11 @@ def salary(jobLst):
                     company = None
 
                 c.execute('INSERT OR IGNORE INTO jobs (title, location, snippet, salary, company) SELECT ?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM jobs WHERE title=? AND company=?)', (title, location, snippet, salary, company, title, company))
-
+                if c.rowcount >= 1:
+                    counter += 1
             # Commit the changes and close the connection
             conn.commit()
+            
             conn.close()
 
-atlasMajor()
+salary(['Data Scientist', "Python Developer"])
