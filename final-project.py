@@ -18,7 +18,6 @@ def atlasMajor(major= "Computer Engineering BSE"):
     from selenium.webdriver.support import expected_conditions as EC
     from selenium.webdriver.common.by import By
     majorURL = major.replace(' ','%20')
-    major = major.replace(' ', '')
     url = 'https://atlas.ai.umich.edu/major/'+majorURL
     # Set the path to your ChromeDriver executable
     chromedriver_path = r"C:\Users\gecko\Downloads\chromedriver_win32 (4)\chromedriver.exe"
@@ -38,8 +37,12 @@ def atlasMajor(major= "Computer Engineering BSE"):
     for link in course_container.find_all('a'):
         links.append(link.get('href'))
     links = [x for x in links if x is not None and '/bookmark/' not in x]
+    counter = 0
     if len(links)>0:
         for url in links:
+            print(counter)
+            if counter >= 25:
+                break
             try:
                 driver.get('https://atlas.ai.umich.edu'+url)
 
@@ -99,14 +102,18 @@ def atlasMajor(major= "Computer Engineering BSE"):
 
                 # Create the table if it does not exist
                 cursor.execute(f'''
-                CREATE TABLE IF NOT EXISTS {major}
-                (id INTEGER PRIMARY KEY, title TEXT, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER, interest INTEGER)
+                CREATE TABLE IF NOT EXISTS classes
+                (id INTEGER PRIMARY KEY, title TEXT, major TEXT, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER, interest INTEGER)
                 ''')
                 cursor.execute(f'''
-                    INSERT OR IGNORE INTO {major} (title, median_grade, workload, understanding, desire, expectation, interest)
-                    SELECT ?,?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM {major} WHERE title=?)
-                    ''', (title, median_grade, workload, understanding, desire, expectation, interest, title))
+                    INSERT OR IGNORE INTO classes (title, major, median_grade, workload, understanding, desire, expectation, interest)
+                    SELECT ?,?,?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM classes WHERE title=?)
+                    ''', (title, major, median_grade, workload, understanding, desire, expectation, interest, title))
                 conn.commit()
+
+                print(cursor.rowcount)
+                if cursor.rowcount >= 1:
+                    counter += 1
 
                 cursor.close()
                 conn.close()
@@ -119,22 +126,19 @@ def atlasMajor(major= "Computer Engineering BSE"):
 
                 # Create the table if it does not exist
                 cursor.execute(f'''
-                CREATE TABLE IF NOT EXISTS {major}
-                (id INTEGER PRIMARY KEY, title TEXT, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER, interest INTEGER)
+                CREATE TABLE IF NOT EXISTS classes
+                (id INTEGER PRIMARY KEY, title TEXT, major TEXT, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER, interest INTEGER)
                 ''')
                 cursor.execute(f'''
-                    INSERT OR IGNORE INTO {major} (title, median_grade)
-                    SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM {major} WHERE title=?)
-                    ''', (title, median_grade, title))
+                    INSERT OR IGNORE INTO classes (title,major, median_grade)
+                    SELECT ?,?,? WHERE NOT EXISTS (SELECT 1 FROM classes WHERE title=?)
+                    ''', (title, major, median_grade, title))
                 conn.commit()
+                if cursor.rowcount >= 1:
+                    counter += 1
 
                 cursor.close()
-                conn.close()
-                
-                
-                
-            #this now waits to continue until the NavBar id is shown. Essentially, it waits until the user is logged in to continue.
-            
+                conn.close()            
         
         driver.quit()
     else:
@@ -230,5 +234,4 @@ def salary(jobLst):
             conn.commit()
             conn.close()
 
-
-salary(GPTsalary())
+atlasMajor()
