@@ -17,8 +17,9 @@ def atlasMajor(major= "Computer Engineering BSE"):
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
     from selenium.webdriver.common.by import By
-    major = major.replace(' ','%20')
-    url = 'https://atlas.ai.umich.edu/major/'+major
+    majorURL = major.replace(' ','%20')
+    major = major.replace(' ', '')
+    url = 'https://atlas.ai.umich.edu/major/'+majorURL
     # Set the path to your ChromeDriver executable
     chromedriver_path = r"C:\Users\gecko\Downloads\chromedriver_win32 (4)\chromedriver.exe"
 
@@ -39,24 +40,28 @@ def atlasMajor(major= "Computer Engineering BSE"):
     links = [x for x in links if x is not None and '/bookmark/' not in x]
     if len(links)>0:
         for url in links:
-            driver.get('https://atlas.ai.umich.edu'+url)
+            try:
+                driver.get('https://atlas.ai.umich.edu'+url)
 
-            wait = WebDriverWait(driver, 10)
-            wait.until(EC.presence_of_all_elements_located((By.XPATH, "//*")))
+                wait = WebDriverWait(driver, 10)
+                wait.until(EC.presence_of_all_elements_located((By.XPATH, "//*")))
 
-            soup = BeautifulSoup(driver.page_source, 'html.parser')
+                soup = BeautifulSoup(driver.page_source, 'html.parser')
 
-            # Find the span element with class 'bold blue-highlight-text'
-            median_grade_span = soup.find('span', class_='bold blue-highlight-text')
-            median_grade = median_grade_span.text
+                # Find the span element with class 'bold blue-highlight-text'
+                median_grade_span = soup.find('span', class_='bold blue-highlight-text')
+                median_grade = median_grade_span.text
 
 
-            title_element = soup.find('title')
-            title = title_element.text
-
+                title_element = soup.find('title')
+                title = title_element.text
+            except:
+                time.sleep(10)
+                print('error #1')
+                driver.refresh()
 
             try:
-                element = WebDriverWait(driver, 9).until(
+                element = WebDriverWait(driver, 6).until(
                 EC.presence_of_element_located((By.CLASS_NAME, "course-eval-card-container"))
                 )
 
@@ -83,9 +88,9 @@ def atlasMajor(major= "Computer Engineering BSE"):
                     elif count == 4:
                         interest = element.text
                         interest = re.search(r'\b\d+\b', interest).group(0)
-                print('\n',title, median_grade, desire, understanding, workload, expectation, interest)
+                #print('\n',title, median_grade, desire, understanding, workload, expectation, interest)
 
-            # Connect to the database
+                # Connect to the database
                 path = os.path.dirname(os.path.abspath(__file__))
                 conn = sqlite3.connect(path+'/'+'classes.db')
 
@@ -94,13 +99,13 @@ def atlasMajor(major= "Computer Engineering BSE"):
 
                 # Create the table if it does not exist
                 cursor.execute(f'''
-                    CREATE TABLE IF NOT EXISTS {major}
-                    (id INTEGER PRIMARY KEY, title TEXT, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER)
-                    ''')
+                CREATE TABLE IF NOT EXISTS {major}
+                (id INTEGER PRIMARY KEY, title TEXT, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER, interest INTEGER)
+                ''')
                 cursor.execute(f'''
-                    INSERT OR IGNORE INTO {major} (title, median_grade, workload, understanding, desire, expectation)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    ''', (title, median_grade, workload, understanding, desire, expectation))
+                    INSERT OR IGNORE INTO {major} (title, median_grade, workload, understanding, desire, expectation, interest)
+                    SELECT ?,?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM {major} WHERE title=?)
+                    ''', (title, median_grade, workload, understanding, desire, expectation, interest, title))
                 conn.commit()
 
                 cursor.close()
@@ -113,14 +118,14 @@ def atlasMajor(major= "Computer Engineering BSE"):
                 cursor = conn.cursor()
 
                 # Create the table if it does not exist
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS classes
-                    (id INTEGER PRIMARY KEY, title TEXT, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER)
-                    ''')
-                cursor.execute('''
-                    INSERT OR IGNORE INTO classes (title, median_grade)
-                    VALUES (?, ?)
-                    ''', (title, median_grade))
+                cursor.execute(f'''
+                CREATE TABLE IF NOT EXISTS {major}
+                (id INTEGER PRIMARY KEY, title TEXT, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER, interest INTEGER)
+                ''')
+                cursor.execute(f'''
+                    INSERT OR IGNORE INTO {major} (title, median_grade)
+                    SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM {major} WHERE title=?)
+                    ''', (title, median_grade, title))
                 conn.commit()
 
                 cursor.close()
@@ -136,10 +141,10 @@ def atlasMajor(major= "Computer Engineering BSE"):
         print('please input an alternative major, or ensure the major you inputted is correct')
 
 
-def GPTsalary(major = 'Information Systems'):
+def GPTsalary(major = 'Computer Engineering BSE'):
     import openai
     import re
-    openai.api_key = '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'
+    openai.api_key = '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'
 
     # Set the prompt for the OpenAI API
     prompt = ("Create a 5 bulletpoint list of job titles an individual with a major in  " + major + " would normally have")
@@ -165,7 +170,7 @@ def GPTsalary(major = 'Information Systems'):
 
 
 
-def salary(jobs):
+def salary(jobLst):
     import http.client
     import sqlite3
     import json
@@ -177,9 +182,9 @@ def salary(jobs):
     #request headers
     headers = {"Content-type": "application/json"}
     #json query
-    for job in jobs:
-        for x in range(4):
-            body = '{ "keywords": "'+job+'", "location": "US", "page": '+str(x)+' }' #this limit isint working
+    for jobM in jobLst:
+        for x in range(1,5): #this gets 4 pages of listings per job
+            body = '{ "keywords": "'+jobM+'", "location": "US", "page": '+str(x)+', "salar": "10" }' #this limit isint working
             connection.request('POST','/api/' + key, body, headers)
             response = connection.getresponse()
             data = response.read().decode("utf-8")
@@ -194,22 +199,36 @@ def salary(jobs):
 
             # Loop through the jobs and insert them into the database
             for job in json_data['jobs']:
-                title = job['title']
-                location = job['location']
-                snippet = job['snippet']
-                salary = job['salary']
-                company = job['company']
-                c.execute('INSERT OR IGNORE INTO jobs (title, location, snippet, salary, company) SELECT ?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM jobs WHERE title=?)', (title, location, snippet, salary, company, title))
+                try:
+                    title = job['title']
+                except KeyError:
+                    title = None
+                
+                try:
+                    location = job['location']
+                except KeyError:
+                    location = None
+                    
+                try:
+                    snippet = job['snippet']
+                except KeyError:
+                    snippet = None
+                    
+                try:
+                    salary = job['salary']
+                except KeyError:
+                    salary = None
+                    
+                try:
+                    company = job['company']
+                except KeyError:
+                    company = None
+
+                c.execute('INSERT OR IGNORE INTO jobs (title, location, snippet, salary, company) SELECT ?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM jobs WHERE title=? AND company=?)', (title, location, snippet, salary, company, title, company))
 
             # Commit the changes and close the connection
             conn.commit()
             conn.close()
 
 
-#we can use LSA course guide to get a list of classes that fall under certain criteria. Example:
-'''
-Can use https://www.lsa.umich.edu/cg/cg_results.aspx?termArray=f_23_2460&cgtype=ug&show=20&dist=NS to find classes in F_23_24 that are
-NS credits. Can change any variables to alter. For example, increase "show" to 40 to show more.
-'''
-#getClassAtlas(['https://atlas.ai.umich.edu/course/SI%20206/', 'https://atlas.ai.umich.edu/course/IHS%20340/', 'https://atlas.ai.umich.edu/course/STATS%20250/'])
-atlasMajor()
+salary(GPTsalary())
