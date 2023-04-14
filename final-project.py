@@ -94,7 +94,7 @@ def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major i
 
                 # Connect to the database
                 path = os.path.dirname(os.path.abspath(__file__))
-                conn = sqlite3.connect(path+'/'+'classes.db')
+                conn = sqlite3.connect(path+'/'+'database.db')
 
                 # Create a cursor object
                 cursor = conn.cursor()
@@ -102,12 +102,28 @@ def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major i
                 # Create the table if it does not exist
                 cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS classes
-                (id INTEGER PRIMARY KEY, title TEXT, major TEXT, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER, interest INTEGER)
+                (id INTEGER PRIMARY KEY, title TEXT, major_id INTEGER, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER, interest INTEGER)
                 ''')
+                cursor.execute('CREATE TABLE IF NOT EXISTS major (id INTEGER PRIMARY KEY, major TEXT)')
+                try:
+                    # Check if the location already exists in the job locations table
+                    cursor.execute('SELECT id FROM major WHERE major=?', (major,))
+                    result = cursor.fetchone()
+                    if result is not None:
+                        # Use the existing job location ID
+                        major_id = result[0]
+                    else:
+                        # Insert the job location into the job locations table
+                        cursor.execute('INSERT INTO major (major) VALUES (?)', (major,))
+                        major_id = cursor.lastrowid
+                except KeyError:
+                    major = None
+                    major = None
+
                 cursor.execute(f'''
-                    INSERT OR IGNORE INTO classes (title, major, median_grade, workload, understanding, desire, expectation, interest)
+                    INSERT OR IGNORE INTO classes (title, major_id, median_grade, workload, understanding, desire, expectation, interest)
                     SELECT ?,?,?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM classes WHERE title=?)
-                    ''', (title, major, median_grade, workload, understanding, desire, expectation, interest, title))
+                    ''', (title, major_id, median_grade, workload, understanding, desire, expectation, interest, title))
                 conn.commit()
 
     
@@ -118,7 +134,7 @@ def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major i
                 conn.close()
             except:
                 path = os.path.dirname(os.path.abspath(__file__))
-                conn = sqlite3.connect(path+'/'+'classes.db')
+                conn = sqlite3.connect(path+'/'+'database.db')
 
                 # Create a cursor object
                 cursor = conn.cursor()
@@ -126,12 +142,28 @@ def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major i
                 # Create the table if it does not exist
                 cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS classes
-                (id INTEGER PRIMARY KEY, title TEXT, major TEXT, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER, interest INTEGER)
+                (id INTEGER PRIMARY KEY, title TEXT, major_id INTEGER, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER, interest INTEGER)
                 ''')
+                cursor.execute('CREATE TABLE IF NOT EXISTS major (id INTEGER PRIMARY KEY, major TEXT)')
+                try:
+                    # Check if the location already exists in the job locations table
+                    cursor.execute('SELECT id FROM major WHERE major=?', (major,))
+                    result = cursor.fetchone()
+                    if result is not None:
+                        # Use the existing job location ID
+                        major_id = result[0]
+                    else:
+                        # Insert the job location into the job locations table
+                        cursor.execute('INSERT INTO major (major) VALUES (?)', (major,))
+                        major_id = cursor.lastrowid
+                except KeyError:
+                    major = None
+                    major = None
+
                 cursor.execute(f'''
-                    INSERT OR IGNORE INTO classes (title,major, median_grade)
+                    INSERT OR IGNORE INTO classes (title,major_id, median_grade)
                     SELECT ?,?,? WHERE NOT EXISTS (SELECT 1 FROM classes WHERE title=?)
-                    ''', (title, major, median_grade, title))
+                    ''', (title, major_id, median_grade, title))
                 conn.commit()
                 if cursor.rowcount >= 1:
                     counter += 1
@@ -147,7 +179,7 @@ def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major i
 def GPTsalary(major = 'Computer Engineering BSE'):
     import openai
     import re
-    openai.api_key = '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'
+    openai.api_key = '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'
 
     # Set the prompt for the OpenAI API
     prompt = ("Create a 5 bulletpoint list of job titles an individual with a major in  " + major + " would normally have")
@@ -201,7 +233,7 @@ def salary(jobLst):
 
             #print(json_data)
 
-            conn = sqlite3.connect('salaries.db')
+            conn = sqlite3.connect('database.db')
             c = conn.cursor()
             # Create the table if it doesn't already exist
             c.execute('CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY, title TEXT, job_location_id INTEGER, snippet TEXT, salary TEXT, company TEXT)')
@@ -288,5 +320,5 @@ def get_price_history(symbol):
     for date, values in data.items():
         price_history.append({'date': date, 'open': values['1. open'], 'high': values['2. high'], 'low': values['3. low'], 'close': values['4. close'], 'volume': values['6. volume']})
     return price_history
-
-print(get_price_history('AAPL'))
+atlasMajor()
+#salary(GPTsalary())
