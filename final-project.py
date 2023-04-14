@@ -117,8 +117,8 @@ def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major i
                         cursor.execute('INSERT INTO major (major) VALUES (?)', (major,))
                         major_id = cursor.lastrowid
                 except KeyError:
-                    major = None
-                    major = None
+                    major_id = None
+                    major_id = None
 
                 cursor.execute(f'''
                     INSERT OR IGNORE INTO classes (title, major_id, median_grade, workload, understanding, desire, expectation, interest)
@@ -157,8 +157,8 @@ def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major i
                         cursor.execute('INSERT INTO major (major) VALUES (?)', (major,))
                         major_id = cursor.lastrowid
                 except KeyError:
-                    major = None
-                    major = None
+                    major_id = None
+                    major_id = None
 
                 cursor.execute(f'''
                     INSERT OR IGNORE INTO classes (title,major_id, median_grade)
@@ -179,7 +179,7 @@ def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major i
 def GPTsalary(major = 'Computer Engineering BSE'):
     import openai
     import re
-    openai.api_key = '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'
+    openai.api_key = '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'
 
     # Set the prompt for the OpenAI API
     prompt = ("Create a 5 bulletpoint list of job titles an individual with a major in  " + major + " would normally have")
@@ -201,11 +201,11 @@ def GPTsalary(major = 'Computer Engineering BSE'):
         line =  re.sub(r'^[^a-zA-Z]+', '', line)
         line = line.strip()
         output.append(line)
-    return output
+    return major, output
 
 
 
-def salary(jobLst):
+def salary(jobTupl = ('Computer Engineering BSE', ['Computer Engineer', 'Software Engineer', 'Hardware Engineer', 'Network Engineer', 'Systems Engineer'])):
     import http.client
     import sqlite3
     import json
@@ -219,7 +219,8 @@ def salary(jobLst):
     headers = {"Content-type": "application/json"}
     #json query
     counter = 0
-    for jobM in jobLst:
+    major = jobTupl[0]
+    for jobM in jobTupl[1]:
         if counter >= 25:
                     break
         for x in range(1,5): #this gets 4 pages of listings per job
@@ -236,12 +237,27 @@ def salary(jobLst):
             conn = sqlite3.connect('database.db')
             c = conn.cursor()
             # Create the table if it doesn't already exist
-            c.execute('CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY, title TEXT, job_location_id INTEGER, snippet TEXT, salary TEXT, company TEXT)')
+            c.execute('CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY, title TEXT, major_id INTEGER, job_location_id INTEGER, snippet TEXT, salary TEXT, company TEXT)')
+            c.execute('CREATE TABLE IF NOT EXISTS major (id INTEGER PRIMARY KEY, major TEXT)')
             c.execute('CREATE TABLE IF NOT EXISTS job_locations (id INTEGER PRIMARY KEY, location TEXT)')
             # Loop through the jobs and insert them into the database
             for job in json_data['jobs']:
                 if counter >= 25:
                     break
+                try:
+                    # Check if the location already exists in the job locations table
+                    c.execute('SELECT id FROM major WHERE major=?', (major,))
+                    result = c.fetchone()
+                    if result is not None:
+                        # Use the existing job location ID
+                        major_id = result[0]
+                    else:
+                        # Insert the job location into the job locations table
+                        c.execute('INSERT INTO major (major) VALUES (?)', (major,))
+                        major_id = c.lastrowid
+                except KeyError:
+                    major_id = None
+                    major_id = None
                 try:
                     title = job['title']
                 except KeyError:
@@ -301,7 +317,7 @@ def salary(jobLst):
                 except KeyError:
                     company = None
 
-                c.execute('INSERT OR IGNORE INTO jobs (title, job_location_id, snippet, salary, company) SELECT ?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM jobs WHERE title=? AND company=?)', (title, job_location_id, snippet, annual_salary, company, title, company))
+                c.execute('INSERT OR IGNORE INTO jobs (title, major_id, job_location_id, snippet, salary, company) SELECT ?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM jobs WHERE title=? AND company=?)', (title, major_id, job_location_id, snippet, annual_salary, company, title, company))
                 if c.rowcount >= 1:
                     counter += 1
             # Commit the changes and close the connection
@@ -320,5 +336,5 @@ def get_price_history(symbol):
     for date, values in data.items():
         price_history.append({'date': date, 'open': values['1. open'], 'high': values['2. high'], 'low': values['3. low'], 'close': values['4. close'], 'volume': values['6. volume']})
     return price_history
-atlasMajor()
-#salary(GPTsalary())
+#atlasMajor()
+salary(('Information BS', ['UX designer', 'IT consultant', 'Python Developer']))
