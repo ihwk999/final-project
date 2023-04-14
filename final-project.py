@@ -204,8 +204,8 @@ def salary(jobLst):
             conn = sqlite3.connect('salaries.db')
             c = conn.cursor()
             # Create the table if it doesn't already exist
-            c.execute('CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY, title TEXT, location TEXT, snippet TEXT, salary TEXT, company TEXT)')
-
+            c.execute('CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY, title TEXT, job_location_id INTEGER, snippet TEXT, salary TEXT, company TEXT)')
+            c.execute('CREATE TABLE IF NOT EXISTS job_locations (id INTEGER PRIMARY KEY, location TEXT)')
             # Loop through the jobs and insert them into the database
             for job in json_data['jobs']:
                 if counter >= 25:
@@ -216,9 +216,20 @@ def salary(jobLst):
                     title = None
                 
                 try:
-                    location = job['location']
+                    job_location = job['location']
+                    # Check if the location already exists in the job locations table
+                    c.execute('SELECT id FROM job_locations WHERE location=?', (job_location,))
+                    result = c.fetchone()
+                    if result is not None:
+                        # Use the existing job location ID
+                        job_location_id = result[0]
+                    else:
+                        # Insert the job location into the job locations table
+                        c.execute('INSERT INTO job_locations (location) VALUES (?)', (job_location,))
+                        job_location_id = c.lastrowid
                 except KeyError:
-                    location = None
+                    job_location = None
+                    job_location_id = None
                     
                 try:
                     snippet = job['snippet']
@@ -259,7 +270,7 @@ def salary(jobLst):
                 except KeyError:
                     company = None
 
-                c.execute('INSERT OR IGNORE INTO jobs (title, location, snippet, salary, company) SELECT ?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM jobs WHERE title=? AND company=?)', (title, location, snippet, annual_salary, company, title, company))
+                c.execute('INSERT OR IGNORE INTO jobs (title, job_location_id, snippet, salary, company) SELECT ?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM jobs WHERE title=? AND company=?)', (title, job_location_id, snippet, annual_salary, company, title, company))
                 if c.rowcount >= 1:
                     counter += 1
             # Commit the changes and close the connection
