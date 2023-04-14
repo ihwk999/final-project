@@ -260,8 +260,7 @@ def salary(jobLst):
                             annual_salary = numbers[0]
                         else:
                             annual_salary = sum(numbers) / len(numbers)
-                        print(salary)
-                        print(annual_salary)
+        
                 except KeyError:
                     salary = None
                     
@@ -278,4 +277,16 @@ def salary(jobLst):
             
             conn.close()
 
-salary(['Data Scientist', "Python Developer"])
+def get_price_history(symbol):
+    import requests
+
+    ALPHA_VANTAGE_API_KEY = 'KUGOCCJRWJ0PQBI1'
+    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol={symbol}&apikey={ALPHA_VANTAGE_API_KEY}'
+    response = requests.get(url)
+    data = response.json()['Time Series (Daily)']
+    price_history = []
+    for date, values in data.items():
+        price_history.append({'date': date, 'open': values['1. open'], 'high': values['2. high'], 'low': values['3. low'], 'close': values['4. close'], 'volume': values['6. volume']})
+    return price_history
+
+print(get_price_history('AAPL'))
