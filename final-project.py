@@ -177,6 +177,7 @@ def salary(jobLst):
     import http.client
     import sqlite3
     import json
+    import re
 
     host = 'jooble.org'
     key = '5d5716ba-8dec-4784-b885-926a7ebee49f'
@@ -226,6 +227,30 @@ def salary(jobLst):
                     
                 try:
                     salary = job['salary']
+                    if "hour" in salary:
+                        # Extract the two numbers from the string
+                        numbers = [float(s) for s in re.findall(r'\d+\.*\d*', salary)]
+                        # Calculate the average hourly rate
+                        hourly_rate = sum(numbers) / len(numbers)
+                        # Calculate the annual salary
+                        annual_salary = hourly_rate * 2080
+                    elif "day" in salary:
+                        # Extract the two numbers from the string
+                        numbers = [float(s) for s in re.findall(r'\d+\.*\d*', salary)]
+                        # Calculate the average daily rate
+                        daily_rate = sum(numbers) / len(numbers)
+                        # Calculate the annual salary
+                        annual_salary = daily_rate * 260
+                    else:
+                        # Extract the one or two numbers from the string
+                        numbers = [float(s[:-1]) * 1000 if s[-1] == "k" else float(s) for s in re.findall(r'\d+\.*\d*\w*', salary)]
+                        # Calculate the average annual salary
+                        if len(numbers) == 1:
+                            annual_salary = numbers[0]
+                        else:
+                            annual_salary = sum(numbers) / len(numbers)
+                        print(salary)
+                        print(annual_salary)
                 except KeyError:
                     salary = None
                     
@@ -234,7 +259,7 @@ def salary(jobLst):
                 except KeyError:
                     company = None
 
-                c.execute('INSERT OR IGNORE INTO jobs (title, location, snippet, salary, company) SELECT ?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM jobs WHERE title=? AND company=?)', (title, location, snippet, salary, company, title, company))
+                c.execute('INSERT OR IGNORE INTO jobs (title, location, snippet, salary, company) SELECT ?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM jobs WHERE title=? AND company=?)', (title, location, snippet, annual_salary, company, title, company))
                 if c.rowcount >= 1:
                     counter += 1
             # Commit the changes and close the connection
