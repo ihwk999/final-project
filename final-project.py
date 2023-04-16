@@ -172,8 +172,64 @@ def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major i
                 conn.close()            
         
         driver.quit()
+
     else:
         print('please input an alternative major, or ensure the major you inputted is correct')
+
+import sqlite3
+
+def convertGrades():
+    # Define a function to convert the grade letter to a 4.0 scale grade
+    def convert_grade(grade_letter):
+        if grade_letter == 'A+' or grade_letter == 'A':
+            return 4.0
+        elif grade_letter == 'A-':
+            return 3.7
+        elif grade_letter == 'B+':
+            return 3.3
+        elif grade_letter == 'B':
+            return 3.0
+        elif grade_letter == 'B-':
+            return 2.7
+        elif grade_letter == 'C+':
+            return 2.3
+        elif grade_letter == 'C':
+            return 2.0
+        elif grade_letter == 'C-':
+            return 1.7
+        elif grade_letter == 'D+':
+            return 1.3
+        elif grade_letter == 'D':
+            return 1.0
+        else:
+            return 'N/A'
+
+    # Define a SQL query to update the "median_grade" column to a 4.0 scale grade
+    sql_query = '''
+    UPDATE classes
+    SET median_grade = ?
+    WHERE id = ?
+    '''
+
+    # Open a connection to the database
+    conn = sqlite3.connect('database.db')
+
+    # Get a cursor object for the database connection
+    cursor = conn.cursor()
+
+    # Execute the SQL query to get all rows in the "classes" table
+    cursor.execute('SELECT id, median_grade FROM classes')
+    rows = cursor.fetchall()
+
+    # Iterate over all rows in the "classes" table and update each one
+    for row in rows:
+        grade_4scale = convert_grade(row[1])
+        cursor.execute(sql_query, (grade_4scale, row[0]))
+
+    # Commit the changes and close the connection
+    conn.commit()
+    conn.close()
+
 
 
 def GPTsalary(major = 'Computer Engineering BSE'):
@@ -325,16 +381,102 @@ def salary(jobTupl = ('Computer Engineering BSE', ['Computer Engineer', 'Softwar
             
             conn.close()
 
-def get_price_history(symbol):
+def companyList():
+    import sqlite3
+    # Open a connection to the database
+    conn = sqlite3.connect('database.db')
+
+    # Get a cursor object for the database connection
+    cursor = conn.cursor()
+
+    # Define a SQL query to select all unique company names from the jobs table
+    sql_query = '''
+    SELECT DISTINCT company
+    FROM jobs
+    '''
+
+    # Execute the SQL query and fetch all the results into a list
+    cursor.execute(sql_query)
+    results = cursor.fetchall()
+
+    # Extract the company names from the results and store them in a list
+    company_names = [row[0] for row in results]
+    
+    #print(company_names)
+
+    # Close the database connection
+    conn.close()
+    return company_names
+
+
+def get_price_history(company_names):
     import requests
+    import sqlite3
 
     ALPHA_VANTAGE_API_KEY = 'KUGOCCJRWJ0PQBI1'
-    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol={symbol}&apikey={ALPHA_VANTAGE_API_KEY}'
-    response = requests.get(url)
-    data = response.json()['Time Series (Daily)']
-    price_history = []
-    for date, values in data.items():
-        price_history.append({'date': date, 'open': values['1. open'], 'high': values['2. high'], 'low': values['3. low'], 'close': values['4. close'], 'volume': values['6. volume']})
-    return price_history
-#atlasMajor()
-salary(('Information BS', ['UX designer', 'IT consultant', 'Python Developer']))
+    
+    # Connect to the database
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS stocks
+                (date TEXT, open REAL, high REAL, low REAL, close REAL, volume INTEGER, company TEXT)''')
+    counter = 0
+    # Loop through the list of company names
+    for company_name in company_names:
+        if counter >= 25:
+                    break
+        url = 'https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=tesco&apikey=demo'
+        r = requests.get(url)
+        data = r.json()
+        try:
+            ticker = data['bestMatches'][0]['1. symbol']
+        except:
+            c.execute("INSERT INTO stocks (date, open, high, low, close, volume, company) VALUES (?, ?, ?, ?, ?, ?, ?)", ('Null', 'Null', 'Null', 'Null', 'Null', 'Null', company_name))
+            # If the company is not publicly traded, skip to the next company
+            continue
+        url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol={ticker}&apikey={ALPHA_VANTAGE_API_KEY}'
+        response = requests.get(url)
+        
+        try:
+            data = response.json()['Time Series (Daily)'] #THIS ISNT WORKING
+        except:
+            print("Failed to load JSON, please try agan in a few minutes, youve reached a limit")
+            return None
+
+        for date, values in data.items():
+            if counter >= 25:
+                break
+            # Retrieve the stock ticker from the JSON response
+
+            # Check if data with the same date and company has already been inserted into the database
+            c.execute("SELECT * FROM stocks WHERE date = ? AND company = ?", (date, company_name))
+            rows = c.fetchall()
+            if len(rows) > 0:
+                continue
+
+            # Insert the data into the "stocks" table
+            open_price = values['1. open']
+            high_price = values['2. high']
+            low_price = values['3. low']
+            close_price = values['4. close']
+            volume = values['6. volume']
+            company = company_name
+            c.execute("INSERT INTO stocks (date, open, high, low, close, volume, company) VALUES (?, ?, ?, ?, ?, ?, ?)", (date, open_price, high_price, low_price, close_price, volume, company_name))
+            counter += 1
+
+        if counter == 0:
+            print(f"No new data added for {company_name}")
+        else:
+            print(f"Added {counter} new data points for {company_name}")
+
+    # Commit the changes to the database and close the connection
+    conn.commit()
+    conn.close()
+
+
+#This whole process works a lot better and is a lot more useful when you remove the 25 row limits (if/break statements)
+
+#atlasMajor('Information BS')
+#convertGrades()
+#salary(GPTsalary('Information BS'))
+#get_price_history(companyList())
