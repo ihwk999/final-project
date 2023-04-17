@@ -230,6 +230,36 @@ def convertGrades():
     conn.commit()
     conn.close()
 
+def majorAvg(column_name):
+    import sqlite3
+    import pandas as pd
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # Connect to the SQL database
+    conn = sqlite3.connect('database.db')
+
+    # Retrieve data from the SQL table
+    df = pd.read_sql_query('SELECT * FROM classes', conn)
+    majors = pd.read_sql_query('SELECT * FROM major', conn)
+
+    # Join the two tables on major_id
+    joined_df = pd.merge(df, majors, left_on='major_id', right_on='id')
+
+    # Compute the average value per unique major_id
+    joined_df[column_name] = pd.to_numeric(joined_df[column_name], errors='coerce')
+    mean_values = joined_df.groupby(['major_id', 'major'])[column_name].mean().reset_index()
+
+    # Plot the mean values for each major
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(mean_values['major'], mean_values[column_name])
+    ax.set_xlabel('Major Name')
+    ax.set_ylabel('Mean ' + column_name.capitalize())
+    ax.set_title('Mean ' + column_name.capitalize() + ' per Major Name')
+    plt.xticks(rotation=0)
+    plt.show()
+
+
 
 
 def GPTsalary(major = 'Computer Engineering BSE'):
@@ -477,6 +507,8 @@ def get_price_history(company_names):
 #This whole process works a lot better and is a lot more useful when you remove the 25 row limits (if/break statements)
 
 #atlasMajor('Information BS')
+#atlasMajor()
 #convertGrades()
+majorAvg('workload')
 #salary(GPTsalary('Information BS'))
 #get_price_history(companyList())
