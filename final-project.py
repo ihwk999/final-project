@@ -265,7 +265,7 @@ def majorAvg(column_name):
 def GPTsalary(major = 'Computer Engineering BSE'):
     import openai
     import re
-    openai.api_key = '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'
+    openai.api_key = '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'
 
     # Set the prompt for the OpenAI API
     prompt = ("Create a 5 bulletpoint list of job titles an individual with a major in  " + major + " would normally have")
@@ -439,12 +439,45 @@ def companyList():
     return company_names
 
 
+
+
+def get_ticker(company_name):
+    import requests
+    from bs4 import BeautifulSoup
+
+    # Define Yahoo Finance search URL
+    YAHOO_FINANCE_URL = f"https://finance.yahoo.com/lookup?s={company_name}"
+
+    # Send the search request
+    response = requests.get(YAHOO_FINANCE_URL)
+
+    # Check if the response is valid
+    if response.status_code == 200:
+        try:
+            # Parse the HTML response
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            # Find the first search result
+            result = soup.find("td", {"class": "data-col0 Ta(start) Pstart(6px)"})
+
+            # Check if a result was found
+            if result is not None:
+                # Extract the ticker symbol from the result
+                ticker = result.text.strip()
+                return ticker
+            else:
+                print(f"No ticker found for '{company_name}'")
+                return None
+        except Exception as e:
+            print(f"Failed to parse HTML response: {e}")
+            return None
+    else:
+        print(f"Failed to get ticker for '{company_name}'. Status code: {response.status_code}")
+        return None
+
 def get_price_history(company_names):
     import requests
     import sqlite3
-
-    ALPHA_VANTAGE_API_KEY = 'KUGOCCJRWJ0PQBI1'
-    
     # Connect to the database
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
@@ -454,23 +487,17 @@ def get_price_history(company_names):
     # Loop through the list of company names
     for company_name in company_names:
         if counter >= 25:
-                    break
-        url = 'https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=tesco&apikey=demo'
-        r = requests.get(url)
-        data = r.json()
-        try:
-            ticker = data['bestMatches'][0]['1. symbol']
-        except:
-            c.execute("INSERT INTO stocks (date, open, high, low, close, volume, company) VALUES (?, ?, ?, ?, ?, ?, ?)", ('Null', 'Null', 'Null', 'Null', 'Null', 'Null', company_name))
-            # If the company is not publicly traded, skip to the next company
+            break
+        ticker = get_ticker(company_name)
+        if ticker is None:
+            # If no ticker found, skip to the next company
             continue
         url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol={ticker}&apikey={ALPHA_VANTAGE_API_KEY}'
         response = requests.get(url)
-        
         try:
-            data = response.json()['Time Series (Daily)'] #THIS ISNT WORKING
+            data = response.json()['Time Series (Daily)']
         except:
-            print("Failed to load JSON, please try agan in a few minutes, youve reached a limit")
+            print("Failed to load JSON, please try again in a few minutes, you've reached a limit")
             return None
 
         for date, values in data.items():
@@ -499,16 +526,51 @@ def get_price_history(company_names):
         else:
             print(f"Added {counter} new data points for {company_name}")
 
-    # Commit the changes to the database and close the connection
     conn.commit()
     conn.close()
+
+def plotStocks():
+    import sqlite3
+    import pandas as pd
+    import matplotlib.pyplot as plt
+
+    # Connect to the SQL database
+    conn = sqlite3.connect('database.db')
+
+    # Retrieve data from the SQL table
+    df = pd.read_sql_query('SELECT date, close, company FROM stocks', conn)
+
+    # Convert the 'date' column to datetime
+    df['date'] = pd.to_datetime(df['date'])
+
+    # Get unique companies
+    unique_companies = df['company'].unique()
+
+    # Plot a separate line for each unique company
+    for company in unique_companies:
+        company_df = df[df['company'] == company]
+        plt.plot(company_df['date'], company_df['close'], label=company)
+
+    plt.xlabel('Date')
+    plt.ylabel('Close Price')
+    plt.title('Stock Close Price Over Time by Company')
+    plt.legend()
+    plt.show()
 
 
 #This whole process works a lot better and is a lot more useful when you remove the 25 row limits (if/break statements)
 
 #atlasMajor('Information BS')
+#atlasMajor('Information BS')
+#atlasMajor('Communication BA')
+#atlasMajor('Communication BA')
 #atlasMajor()
+#atlasMajor()
+
 #convertGrades()
-majorAvg('workload')
+#majorAvg('median_grade')
 #salary(GPTsalary('Information BS'))
-#get_price_history(companyList())
+#salary(GPTsalary('Communication BA'))
+#salary(GPTsalary('Computer Engineering BSE'))
+get_price_history(companyList())
+#plotStocks()
