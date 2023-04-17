@@ -250,6 +250,12 @@ def majorAvg(column_name):
     joined_df[column_name] = pd.to_numeric(joined_df[column_name], errors='coerce')
     mean_values = joined_df.groupby(['major_id', 'major'])[column_name].mean().reset_index()
 
+    # Write the column names and mean values to a text file
+    with open('output.txt', 'w') as f:
+        f.write(f"Major Name, Mean {column_name.capitalize()}\n")
+        for index, row in mean_values.iterrows():
+            f.write(f"{row['major']}, {row[column_name]}\n")
+
     # Plot the mean values for each major
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.bar(mean_values['major'], mean_values[column_name])
@@ -568,9 +574,9 @@ def plotStocks():
 #atlasMajor()
 
 #convertGrades()
-#majorAvg('median_grade')
+majorAvg('median_grade')
 #salary(GPTsalary('Information BS'))
 #salary(GPTsalary('Communication BA'))
 #salary(GPTsalary('Computer Engineering BSE'))
-get_price_history(companyList())
+#get_price_history(companyList())
 #plotStocks()
