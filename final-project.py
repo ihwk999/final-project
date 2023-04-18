@@ -181,7 +181,9 @@ import sqlite3
 def convertGrades():
     # Define a function to convert the grade letter to a 4.0 scale grade
     def convert_grade(grade_letter):
-        if grade_letter == 'A+' or grade_letter == 'A':
+        if '.' in grade_letter:
+            return grade_letter
+        elif grade_letter == 'A+' or grade_letter == 'A':
             return 4.0
         elif grade_letter == 'A-':
             return 3.7
@@ -255,10 +257,10 @@ def majorAvg(column_name):
         f.write(f"Major Name, Mean {column_name.capitalize()}\n")
         for index, row in mean_values.iterrows():
             f.write(f"{row['major']}, {row[column_name]}\n")
-
+    colors = plt.cm.get_cmap('tab20', len(mean_values))
     # Plot the mean values for each major
     fig, ax = plt.subplots(figsize=(12, 6))
-    ax.bar(mean_values['major'], mean_values[column_name])
+    ax.bar(mean_values['major'], mean_values[column_name], color=colors(range(len(mean_values))))
     ax.set_xlabel('Major Name')
     ax.set_ylabel('Mean ' + column_name.capitalize())
     ax.set_title('Mean ' + column_name.capitalize() + ' per Major Name')
@@ -271,7 +273,7 @@ def majorAvg(column_name):
 def GPTsalary(major = 'Computer Engineering BSE'):
     import openai
     import re
-    openai.api_key = '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'
+    openai.api_key = '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'
 
     # Set the prompt for the OpenAI API
     prompt = ("Create a 5 bulletpoint list of job titles an individual with a major in  " + major + " would normally have")
@@ -416,6 +418,44 @@ def salary(jobTupl = ('Computer Engineering BSE', ['Computer Engineer', 'Softwar
             conn.commit()
             
             conn.close()
+
+def jobAvg(column_name = 'salary'):
+    import sqlite3
+    import pandas as pd
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # Connect to the SQL database
+    conn = sqlite3.connect('database.db')
+
+    # Retrieve data from the SQL table
+    jobs = pd.read_sql_query('SELECT * FROM jobs', conn)
+    majors = pd.read_sql_query('SELECT * FROM major', conn)
+
+    # Join the two tables on major_id
+    joined_df = pd.merge(jobs, majors, left_on='major_id', right_on='id')
+
+    # Compute the average value per unique major_id
+    joined_df[column_name] = pd.to_numeric(joined_df[column_name], errors='coerce')
+    mean_values = joined_df.groupby(['major_id', 'major'])[column_name].mean().reset_index()
+
+    # Write the column names and mean values to a text file
+    with open('output.txt', 'w') as f:
+        f.write(f"Major Name, Mean {column_name.capitalize()}\n")
+        for index, row in mean_values.iterrows():
+            f.write(f"{row['major']}, {row[column_name]}\n")
+
+    colors = plt.cm.get_cmap('tab20', len(mean_values))
+
+    # Plot the mean values for each major
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(mean_values['major'], mean_values[column_name], color=colors(range(len(mean_values))))
+    ax.set_xlabel('Major Name')
+    ax.set_ylabel('Mean ' + column_name.capitalize())
+    ax.set_title('Mean ' + column_name.capitalize() + ' per Major Name')
+    plt.xticks(rotation=0)
+    plt.show()
+
 
 def companyList():
     import sqlite3
@@ -566,17 +606,15 @@ def plotStocks():
 
 #This whole process works a lot better and is a lot more useful when you remove the 25 row limits (if/break statements)
 
+atlasMajor('Biology, Health, & Society BS')
 #atlasMajor('Information BS')
-#atlasMajor('Information BS')
-#atlasMajor('Communication BA')
-#atlasMajor('Communication BA')
 #atlasMajor()
-#atlasMajor()
-
 #convertGrades()
-majorAvg('median_grade')
+#majorAvg('workload')
+
+#salary(GPTsalary('Biology,Health, & Society BS'))
 #salary(GPTsalary('Information BS'))
-#salary(GPTsalary('Communication BA'))
 #salary(GPTsalary('Computer Engineering BSE'))
+#jobAvg('salary')
 #get_price_history(companyList())
 #plotStocks()
