@@ -1,8 +1,3 @@
-#Step 1, get classes required from audit
-#Step 2, search for classes that fit criteria, add to DB
-#Step 3, find score for each teach for each top class in class DB
-
-#Step 2, Atlast:
 def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major is in a seperate table and it shares integer key with classes table
     from selenium import webdriver
     from selenium.webdriver.common.keys import Keys
@@ -92,14 +87,11 @@ def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major i
                         interest = re.search(r'\b\d+\b', interest).group(0)
                 #print('\n',title, median_grade, desire, understanding, workload, expectation, interest)
 
-                # Connect to the database
                 path = os.path.dirname(os.path.abspath(__file__))
                 conn = sqlite3.connect(path+'/'+'database.db')
 
-                # Create a cursor object
                 cursor = conn.cursor()
 
-                # Create the table if it does not exist
                 cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS classes
                 (id INTEGER PRIMARY KEY, title TEXT, major_id INTEGER, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER, interest INTEGER)
@@ -110,10 +102,8 @@ def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major i
                     cursor.execute('SELECT id FROM major WHERE major=?', (major,))
                     result = cursor.fetchone()
                     if result is not None:
-                        # Use the existing job location ID
                         major_id = result[0]
                     else:
-                        # Insert the job location into the job locations table
                         cursor.execute('INSERT INTO major (major) VALUES (?)', (major,))
                         major_id = cursor.lastrowid
                 except KeyError:
@@ -136,10 +126,8 @@ def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major i
                 path = os.path.dirname(os.path.abspath(__file__))
                 conn = sqlite3.connect(path+'/'+'database.db')
 
-                # Create a cursor object
                 cursor = conn.cursor()
 
-                # Create the table if it does not exist
                 cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS classes
                 (id INTEGER PRIMARY KEY, title TEXT, major_id INTEGER, median_grade TEXT, workload INTEGER, understanding INTEGER, desire INTEGER, expectation INTEGER, interest INTEGER)
@@ -150,10 +138,8 @@ def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major i
                     cursor.execute('SELECT id FROM major WHERE major=?', (major,))
                     result = cursor.fetchone()
                     if result is not None:
-                        # Use the existing job location ID
                         major_id = result[0]
                     else:
-                        # Insert the job location into the job locations table
                         cursor.execute('INSERT INTO major (major) VALUES (?)', (major,))
                         major_id = cursor.lastrowid
                 except KeyError:
@@ -179,7 +165,6 @@ def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major i
 import sqlite3
 
 def convertGrades():
-    # Define a function to convert the grade letter to a 4.0 scale grade
     def convert_grade(grade_letter):
         if '.' in grade_letter:
             return grade_letter
@@ -206,17 +191,14 @@ def convertGrades():
         else:
             return 'N/A'
 
-    # Define a SQL query to update the "median_grade" column to a 4.0 scale grade
     sql_query = '''
     UPDATE classes
     SET median_grade = ?
     WHERE id = ?
     '''
 
-    # Open a connection to the database
     conn = sqlite3.connect('database.db')
 
-    # Get a cursor object for the database connection
     cursor = conn.cursor()
 
     # Execute the SQL query to get all rows in the "classes" table
@@ -228,7 +210,6 @@ def convertGrades():
         grade_4scale = convert_grade(row[1])
         cursor.execute(sql_query, (grade_4scale, row[0]))
 
-    # Commit the changes and close the connection
     conn.commit()
     conn.close()
 
@@ -238,14 +219,11 @@ def majorAvg(column_name):
     import numpy as np
     import matplotlib.pyplot as plt
 
-    # Connect to the SQL database
     conn = sqlite3.connect('database.db')
 
-    # Retrieve data from the SQL table
     df = pd.read_sql_query('SELECT * FROM classes', conn)
     majors = pd.read_sql_query('SELECT * FROM major', conn)
 
-    # Join the two tables on major_id
     joined_df = pd.merge(df, majors, left_on='major_id', right_on='id')
 
     # Compute the average value per unique major_id
@@ -273,12 +251,10 @@ def majorAvg(column_name):
 def GPTsalary(major = 'Computer Engineering BSE'):
     import openai
     import re
-    openai.api_key = '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'
+    openai.api_key = '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'
 
-    # Set the prompt for the OpenAI API
     prompt = ("Create a 5 bulletpoint list of job titles an individual with a major in  " + major + " would normally have")
 
-    # Generate a response using the OpenAI API
     response = openai.Completion.create(
         engine="text-davinci-002",
         prompt=prompt,
@@ -330,7 +306,6 @@ def salary(jobTupl = ('Computer Engineering BSE', ['Computer Engineer', 'Softwar
 
             conn = sqlite3.connect('database.db')
             c = conn.cursor()
-            # Create the table if it doesn't already exist
             c.execute('CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY, title TEXT, major_id INTEGER, job_location_id INTEGER, snippet TEXT, salary TEXT, company TEXT)')
             c.execute('CREATE TABLE IF NOT EXISTS major (id INTEGER PRIMARY KEY, major TEXT)')
             c.execute('CREATE TABLE IF NOT EXISTS job_locations (id INTEGER PRIMARY KEY, location TEXT)')
@@ -366,7 +341,6 @@ def salary(jobTupl = ('Computer Engineering BSE', ['Computer Engineer', 'Softwar
                         # Use the existing job location ID
                         job_location_id = result[0]
                     else:
-                        # Insert the job location into the job locations table
                         c.execute('INSERT INTO job_locations (location) VALUES (?)', (job_location,))
                         job_location_id = c.lastrowid
                 except KeyError:
@@ -381,21 +355,18 @@ def salary(jobTupl = ('Computer Engineering BSE', ['Computer Engineer', 'Softwar
                 try:
                     salary = job['salary']
                     if "hour" in salary:
-                        # Extract the two numbers from the string
                         numbers = [float(s) for s in re.findall(r'\d+\.*\d*', salary)]
                         # Calculate the average hourly rate
                         hourly_rate = sum(numbers) / len(numbers)
                         # Calculate the annual salary
                         annual_salary = hourly_rate * 2080
                     elif "day" in salary:
-                        # Extract the two numbers from the string
                         numbers = [float(s) for s in re.findall(r'\d+\.*\d*', salary)]
                         # Calculate the average daily rate
                         daily_rate = sum(numbers) / len(numbers)
                         # Calculate the annual salary
                         annual_salary = daily_rate * 260
                     else:
-                        # Extract the one or two numbers from the string
                         numbers = [float(s[:-1]) * 1000 if s[-1] == "k" else float(s) for s in re.findall(r'\d+\.*\d*\w*', salary)]
                         # Calculate the average annual salary
                         if len(numbers) == 1:
@@ -425,21 +396,16 @@ def jobAvg(column_name = 'salary'):
     import numpy as np
     import matplotlib.pyplot as plt
 
-    # Connect to the SQL database
     conn = sqlite3.connect('database.db')
 
-    # Retrieve data from the SQL table
     jobs = pd.read_sql_query('SELECT * FROM jobs', conn)
     majors = pd.read_sql_query('SELECT * FROM major', conn)
 
-    # Join the two tables on major_id
     joined_df = pd.merge(jobs, majors, left_on='major_id', right_on='id')
 
-    # Compute the average value per unique major_id
     joined_df[column_name] = pd.to_numeric(joined_df[column_name], errors='coerce')
     mean_values = joined_df.groupby(['major_id', 'major'])[column_name].mean().reset_index()
 
-    # Write the column names and mean values to a text file
     with open('output.txt', 'w') as f:
         f.write(f"Major Name, Mean {column_name.capitalize()}\n")
         for index, row in mean_values.iterrows():
@@ -447,7 +413,6 @@ def jobAvg(column_name = 'salary'):
 
     colors = plt.cm.get_cmap('tab20', len(mean_values))
 
-    # Plot the mean values for each major
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.bar(mean_values['major'], mean_values[column_name], color=colors(range(len(mean_values))))
     ax.set_xlabel('Major Name')
@@ -459,28 +424,22 @@ def jobAvg(column_name = 'salary'):
 
 def companyList():
     import sqlite3
-    # Open a connection to the database
     conn = sqlite3.connect('database.db')
 
-    # Get a cursor object for the database connection
     cursor = conn.cursor()
 
-    # Define a SQL query to select all unique company names from the jobs table
     sql_query = '''
     SELECT DISTINCT company
     FROM jobs
     '''
 
-    # Execute the SQL query and fetch all the results into a list
     cursor.execute(sql_query)
     results = cursor.fetchall()
 
-    # Extract the company names from the results and store them in a list
     company_names = [row[0] for row in results]
     
     #print(company_names)
 
-    # Close the database connection
     conn.close()
     return company_names
 
@@ -491,24 +450,17 @@ def get_ticker(company_name):
     import requests
     from bs4 import BeautifulSoup
 
-    # Define Yahoo Finance search URL
     YAHOO_FINANCE_URL = f"https://finance.yahoo.com/lookup?s={company_name}"
 
-    # Send the search request
     response = requests.get(YAHOO_FINANCE_URL)
 
-    # Check if the response is valid
     if response.status_code == 200:
         try:
-            # Parse the HTML response
             soup = BeautifulSoup(response.text, "html.parser")
 
-            # Find the first search result
             result = soup.find("td", {"class": "data-col0 Ta(start) Pstart(6px)"})
 
-            # Check if a result was found
             if result is not None:
-                # Extract the ticker symbol from the result
                 ticker = result.text.strip()
                 return ticker
             else:
@@ -606,13 +558,13 @@ def plotStocks():
 
 #This whole process works a lot better and is a lot more useful when you remove the 25 row limits (if/break statements)
 
-atlasMajor('Biology, Health, & Society BS')
+#atlasMajor('Biology, Health, & Society BS')
 #atlasMajor('Information BS')
 #atlasMajor()
 #convertGrades()
 #majorAvg('workload')
 
-#salary(GPTsalary('Biology,Health, & Society BS'))
+salary(GPTsalary('Biology,Health, & Society BS'))
 #salary(GPTsalary('Information BS'))
 #salary(GPTsalary('Computer Engineering BSE'))
 #jobAvg('salary')
