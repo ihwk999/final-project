@@ -251,7 +251,7 @@ def majorAvg(column_name):
 def GPTsalary(major = 'Computer Engineering BSE'):
     import openai
     import re
-    openai.api_key = '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'
+    openai.api_key = '<INSERT OPENAI API KEY>'
 
     prompt = ("Create a 5 bulletpoint list of job titles an individual with a major in  " + major + " would normally have")
 
@@ -282,7 +282,7 @@ def salary(jobTupl = ('Computer Engineering BSE', ['Computer Engineer', 'Softwar
     import re
 
     host = 'jooble.org'
-    key = '5d5716ba-8dec-4784-b885-926a7ebee49f'
+    key = '<INSERT JOOBLE API KEY>'
 
     connection = http.client.HTTPConnection(host)
     #request headers
@@ -446,7 +446,7 @@ def companyList():
 
 def get_ticker(company_name):
     import requests
-    api_key = 'Mwl2e_lEIIRMQzCiMz6YH6M_UN2PvMBt'
+    api_key = '<INSERT POLYGON.IO API KEY>'
     url = f'https://api.polygon.io/v3/reference/tickers?search={company_name}&apiKey={api_key}'
     response = requests.get(url)
     data = response.json()
@@ -463,7 +463,7 @@ def get_ticker(company_name):
 def get_price_history(company_names):
     import requests
     import sqlite3
-    ALPHA_VANTAGE_API_KEY = 'KUGOCCJRWJ0PQBI1'
+    ALPHA_VANTAGE_API_KEY = '<INSERT ALPHA VANTAGE API KEY>'
 
     # Connect to the database
     conn = sqlite3.connect('database.db')
