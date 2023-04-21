@@ -455,30 +455,41 @@ def get_ticker(company_name):
             if company_name == None:
                 break
             if 'name' in result and result['name'].lower() in company_name.lower():
-                print (company_name, result['ticker'])
                 return result['ticker']
     return None
+
+
 
 def get_price_history(company_names):
     import requests
     import sqlite3
+    ALPHA_VANTAGE_API_KEY = 'KUGOCCJRWJ0PQBI1'
+
     # Connect to the database
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS stocks
-                (date TEXT, open REAL, high REAL, low REAL, close REAL, volume INTEGER, company TEXT)''')
+
+    # Create companies table if not exists
+    c.execute('''CREATE TABLE IF NOT EXISTS companies (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)''')
+    # Create stocks table if not exists
+    c.execute('''CREATE TABLE IF NOT EXISTS stocks (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, open REAL, high REAL, low REAL, close REAL, volume INTEGER, company_id INTEGER, FOREIGN KEY (company_id) REFERENCES companies (id))''')
+
     counter = 0
+
     # Loop through the list of company names
     for company_name in company_names:
         if counter >= 25:
             break
+
         ticker = get_ticker(company_name)
+
         if ticker is None:
             # If no ticker found, skip to the next company
             continue
-        ALPHA_VANTAGE_API_KEY = 'KUGOCCJRWJ0PQBI1'
+
         url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol={ticker}&apikey={ALPHA_VANTAGE_API_KEY}'
         response = requests.get(url)
+
         try:
             data = response.json()['Time Series (Daily)']
         except:
@@ -488,31 +499,40 @@ def get_price_history(company_names):
         for date, values in data.items():
             if counter >= 25:
                 break
-            # Retrieve the stock ticker from the JSON response
 
-            # Check if data with the same date and company has already been inserted into the database
-            c.execute("SELECT * FROM stocks WHERE date = ? AND company = ?", (date, company_name))
+            # Retrieve the company ID from the companies table based on the company name
+            c.execute("SELECT id FROM companies WHERE name = ?", (company_name,))
+            row = c.fetchone()
+
+            if row is None:
+                # If company not found in the companies table, insert it and retrieve the generated ID
+                c.execute("INSERT INTO companies (name) VALUES (?)", (company_name,))
+                company_id = c.lastrowid
+            else:
+                company_id = row[0]
+
+            # Check if data with the same date and company ID has already been inserted into the database
+            c.execute("SELECT * FROM stocks WHERE date = ? AND company_id = ?", (date, company_id))
             rows = c.fetchall()
+
             if len(rows) > 0:
                 continue
 
-            # Insert the data into the "stocks" table
+            # Insert the data into the stocks table with the company ID as the foreign key
             open_price = values['1. open']
             high_price = values['2. high']
             low_price = values['3. low']
             close_price = values['4. close']
             volume = values['6. volume']
-            company = company_name
-            c.execute("INSERT OR IGNORE INTO stocks (date, open, high, low, close, volume, company) VALUES (?, ?, ?, ?, ?, ?, ?)", (date, open_price, high_price, low_price, close_price, volume, company_name))
+
+            c.execute("INSERT INTO stocks (date, open, high, low, close, volume, company_id) VALUES (?, ?, ?, ?, ?, ?, ?)", (date, open_price, high_price, low_price, close_price, volume, company_id))
+
             counter += 1
 
-        if counter == 0:
-            print(f"No new data added for {company_name}")
-        else:
-            print(f"Added {counter} new data points for {company_name}")
-
+    # Commit the changes and close the database connection
     conn.commit()
     conn.close()
+
 
 def plotStocks():
     import sqlite3
@@ -587,13 +607,9 @@ def main():
         if current_item == items[-1]:
             jobAvg()
             majorAvg('workload') #this can be changed to show any column in the classes table  
-            plotStocks()
+            plotStocks() #we did not get to show this plot in the grading session, but it now works. 
     else:
         print("No items to run.")
 
-#if __name__ == "__main__":
-#    main()
-plotStocks()
-#changed major to only insert unique majors
-#changed main so it runs new major every time run button is hit
-#fixed finding ticker, using different api for it. 
+if __name__ == "__main__":
+    main()
