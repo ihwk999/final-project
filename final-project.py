@@ -104,7 +104,7 @@ def atlasMajor(major= "Computer Engineering BSE"): #need to change it so major i
                     if result is not None:
                         major_id = result[0]
                     else:
-                        cursor.execute('INSERT INTO major (major) VALUES (?)', (major,))
+                        cursor.execute('INSERT OR IGNORE INTO major (major) VALUES (?)', (major,))
                         major_id = cursor.lastrowid
                 except KeyError:
                     major_id = None
@@ -251,7 +251,7 @@ def majorAvg(column_name):
 def GPTsalary(major = 'Computer Engineering BSE'):
     import openai
     import re
-    openai.api_key = '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'
+    openai.api_key = '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'
 
     prompt = ("Create a 5 bulletpoint list of job titles an individual with a major in  " + major + " would normally have")
 
@@ -444,34 +444,20 @@ def companyList():
     return company_names
 
 
-
-
 def get_ticker(company_name):
     import requests
-    from bs4 import BeautifulSoup
-
-    YAHOO_FINANCE_URL = f"https://finance.yahoo.com/lookup?s={company_name}"
-
-    response = requests.get(YAHOO_FINANCE_URL)
-
-    if response.status_code == 200:
-        try:
-            soup = BeautifulSoup(response.text, "html.parser")
-
-            result = soup.find("td", {"class": "data-col0 Ta(start) Pstart(6px)"})
-
-            if result is not None:
-                ticker = result.text.strip()
-                return ticker
-            else:
-                print(f"No ticker found for '{company_name}'")
-                return None
-        except Exception as e:
-            print(f"Failed to parse HTML response: {e}")
-            return None
-    else:
-        print(f"Failed to get ticker for '{company_name}'. Status code: {response.status_code}")
-        return None
+    api_key = 'Mwl2e_lEIIRMQzCiMz6YH6M_UN2PvMBt'
+    url = f'https://api.polygon.io/v3/reference/tickers?search={company_name}&apiKey={api_key}'
+    response = requests.get(url)
+    data = response.json()
+    if 'results' in data:
+        for result in data['results']:
+            if company_name == None:
+                break
+            if 'name' in result and result['name'].lower() in company_name.lower():
+                print (company_name, result['ticker'])
+                return result['ticker']
+    return None
 
 def get_price_history(company_names):
     import requests
@@ -490,6 +476,7 @@ def get_price_history(company_names):
         if ticker is None:
             # If no ticker found, skip to the next company
             continue
+        ALPHA_VANTAGE_API_KEY = 'KUGOCCJRWJ0PQBI1'
         url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol={ticker}&apikey={ALPHA_VANTAGE_API_KEY}'
         response = requests.get(url)
         try:
@@ -516,7 +503,7 @@ def get_price_history(company_names):
             close_price = values['4. close']
             volume = values['6. volume']
             company = company_name
-            c.execute("INSERT INTO stocks (date, open, high, low, close, volume, company) VALUES (?, ?, ?, ?, ?, ?, ?)", (date, open_price, high_price, low_price, close_price, volume, company_name))
+            c.execute("INSERT OR IGNORE INTO stocks (date, open, high, low, close, volume, company) VALUES (?, ?, ?, ?, ?, ?, ?)", (date, open_price, high_price, low_price, close_price, volume, company_name))
             counter += 1
 
         if counter == 0:
@@ -558,15 +545,55 @@ def plotStocks():
 
 #This whole process works a lot better and is a lot more useful when you remove the 25 row limits (if/break statements)
 
-#atlasMajor('Biology, Health, & Society BS')
-#atlasMajor('Information BS')
-#atlasMajor()
-#convertGrades()
-#majorAvg('workload')
+def main():
+    # List of items to run
 
-salary(GPTsalary('Biology,Health, & Society BS'))
-#salary(GPTsalary('Information BS'))
-#salary(GPTsalary('Computer Engineering BSE'))
-#jobAvg('salary')
-#get_price_history(companyList())
-#plotStocks()
+    items = ["Information BS", "Biology, Health, & Society BS", "Computer Engineering BSE", "Architecture BS"]  # Replace with your list of items
+
+    # Get the current item to run
+    def get_current_item(items):
+        import os
+        if not items:
+            return None
+
+        # Read the last index from the file, or start from 0
+        index_file_path = "index.txt"
+        if os.path.exists(index_file_path):
+            with open(index_file_path, "r") as index_file:
+                index = int(index_file.read().strip())
+        else:
+            index = 0
+
+        item = items[index]
+        index += 1
+        # Update the index and write it back to the file
+        if index >= len(items):
+            index = 0
+        with open(index_file_path, "w") as index_file:
+            index_file.write(str(index))
+        
+        return item
+
+    # Get the current item to run
+    current_item = get_current_item(items)
+
+    if current_item:
+        # Run the current item (replace with your desired action)
+        print(f"Running: {current_item}")
+        atlasMajor(current_item)
+        convertGrades()
+        salary(GPTsalary(current_item))
+        get_price_history(companyList()) #this only works on publicly traded companies, so it varies on job postings
+        if current_item == items[-1]:
+            jobAvg()
+            majorAvg('workload') #this can be changed to show any column in the classes table  
+            plotStocks()
+    else:
+        print("No items to run.")
+
+#if __name__ == "__main__":
+#    main()
+plotStocks()
+#changed major to only insert unique majors
+#changed main so it runs new major every time run button is hit
+#fixed finding ticker, using different api for it. 
